@@ -3,21 +3,21 @@ import { sheets, spreadsheetId } from '../config/sheets';
 import type { Student } from '../types/student';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
   try {
+    // Enable CORS
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+    );
+
+    if (req.method === 'OPTIONS') {
+      res.status(200).end();
+      return;
+    }
+
     // التحقق من متغيرات البيئة
     if (!spreadsheetId) {
       console.error('GOOGLE_SHEETS_ID is not set');
@@ -28,12 +28,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       case 'GET':
         try {
           console.log('Fetching students data...');
+          console.log('Using spreadsheet ID:', spreadsheetId);
+          
           const response = await sheets.spreadsheets.values.get({
             spreadsheetId,
             range: 'Students Data!A2:H'
           });
           
-          console.log('Response received:', response.status);
+          if (!response.data) {
+            throw new Error('No response data received from Google Sheets');
+          }
+          
+          console.log('Response received:', {
+            status: response.status,
+            hasData: !!response.data,
+            rowCount: response.data.values?.length || 0
+          });
           
           const rows = response.data.values || [];
           const students = rows.map(row => ({
@@ -119,9 +129,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         res.status(405).json({ error: 'Method not allowed' });
     }
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('API Error:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      error
+    });
+    
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     const errorDetails = error instanceof Error ? error.stack : '';
+    
     res.status(500).json({ 
       error: 'Internal server error', 
       message: errorMessage,
