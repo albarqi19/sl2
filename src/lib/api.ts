@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = '/api';
 
 export async function fetchData<T>(endpoint: string): Promise<T[]> {
   try {
@@ -45,7 +45,8 @@ export async function addData<T>(endpoint: string, data: T): Promise<T> {
     });
     
     if (!response.ok) {
-      throw new Error('Network response was not ok');
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Network response was not ok');
     }
     
     return await response.json();
@@ -56,9 +57,9 @@ export async function addData<T>(endpoint: string, data: T): Promise<T> {
 }
 
 export const api = {
-  getStudents: () => fetchData('students'),
-  getRecords: () => fetchData('records'),
-  getTeachers: () => fetchData('teachers'),
-  updateStudent: (id: string, data: any) => updateData('students', id, data),
-  addStudent: (data: any) => addData('students', data)
+  getStudents: () => fetchData<Student>('students'),
+  getRecords: () => fetchData<Record>('records'),
+  getTeachers: () => fetchData<Teacher>('teachers'),
+  updateStudent: (id: string, data: Student) => updateData<Student>('students', id, data),
+  addStudent: (data: Omit<Student, 'points'>) => addData<Student>('students', { ...data, points: 0 }),
 };

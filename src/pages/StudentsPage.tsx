@@ -52,7 +52,7 @@ export function StudentsPage() {
     }
   };
 
-  const handleStudentAdd = async (newStudent: Omit<Student, 'id' | 'points'>) => {
+  const handleStudentAdd = async (newStudent: Omit<Student, 'points'>) => {
     try {
       setUpdateError(null);
       console.log('Sending add request for student:', newStudent);

@@ -12,11 +12,11 @@ const STUDY_GROUPS = [
 
 interface StudentAddModalProps {
   onClose: () => void;
-  onAdd: (student: Omit<Student, 'id' | 'points'>) => Promise<boolean>;
+  onAdd: (student: Omit<Student, 'points'>) => Promise<boolean>;
 }
 
 export function StudentAddModal({ onClose, onAdd }: StudentAddModalProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Omit<Student, 'points'>>({
     id: '',
     studentName: '',
     level: STUDY_GROUPS[0],
@@ -32,16 +32,13 @@ export function StudentAddModal({ onClose, onAdd }: StudentAddModalProps) {
     setIsSaving(true);
     
     try {
-      const success = await onAdd({
-        ...formData,
-        violations: '',
-        parts: '',
-        points: 0,
-      });
+      const success = await onAdd(formData);
       
       if (success) {
         onClose();
       }
+    } catch (error) {
+      console.error(error);
     } finally {
       setIsSaving(false);
     }

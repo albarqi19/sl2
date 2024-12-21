@@ -1,6 +1,5 @@
 import express from 'express';
 import { sheets, spreadsheetId } from '../config/sheets.js';
-import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
 
@@ -33,7 +32,18 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const newStudent = req.body;
-    const studentId = uuidv4();
+    const studentId = newStudent.id; // استخدام رقم الهوية المرسل من واجهة المستخدم
+    
+    // التحقق من عدم وجود طالب بنفس رقم الهوية
+    const existingResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: 'Students Data!A2:A'
+    });
+    
+    const existingIds = existingResponse.data.values || [];
+    if (existingIds.some(row => row[0]?.toString() === studentId)) {
+      return res.status(400).json({ error: 'رقم الهوية مستخدم مسبقاً' });
+    }
     
     console.log('Adding new student:', { id: studentId, ...newStudent });
     
@@ -60,9 +70,9 @@ router.post('/', async (req, res) => {
           newStudent.studentName,
           newStudent.level,
           newStudent.classNumber,
-          newStudent.violations,
-          newStudent.parts,
-          newStudent.points,
+          newStudent.violations || '',
+          newStudent.parts || '',
+          newStudent.points || 0,
           newStudent.phone
         ]]
       }
@@ -100,8 +110,8 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Student not found' });
     }
     
-    // Update the row in Google Sheets
-    const range = `Students Data!A${rowIndex + 2}:H${rowIndex + 2}`;
+    // Update the row
+    const range = `Students Data!A${rowIndex + 2}:H${rowIndex + 2}`; // +2 because we start from A2
     console.log('Updating range:', range);
     
     const updateResponse = await sheets.spreadsheets.values.update({
@@ -110,13 +120,13 @@ router.put('/:id', async (req, res) => {
       valueInputOption: 'RAW',
       resource: {
         values: [[
-          id,
+          id, // Keep the original ID
           updatedStudent.studentName,
           updatedStudent.level,
           updatedStudent.classNumber,
-          updatedStudent.violations,
-          updatedStudent.parts,
-          updatedStudent.points,
+          updatedStudent.violations || '',
+          updatedStudent.parts || '',
+          updatedStudent.points || 0,
           updatedStudent.phone
         ]]
       }
